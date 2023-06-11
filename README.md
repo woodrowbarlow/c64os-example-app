@@ -103,3 +103,18 @@ The floppy contains the `main.o` and `menu.m` objects. You'll need to install
 these as an application. See the programmers guide for more info:
 
 https://c64os.com/c64os/programmersguide/devenvironment
+
+## TODO
+
+* [x] cross-assemble the borderflash example.
+* [x] integrate VICE for testing.
+* [x] incorporate C64 OS includes.
+* [ ] research toolkit, add basic window controls.
+* [ ] research menus, tooling for building `.m` files.
+* [ ] generate `.car` files. burn these to disk instead of objects.
+* [ ] generate `.d71`, `.d81`, and `.t64` images.
+* [ ] research libraries, add an example.
+* [ ] research applications vs utilities, showcase both.
+* [ ] set up CookieCutter template so people can quick-init projects.
+* [ ] `cmake` example with multi-binary/multi-library projects?
+* [ ] research drivers, write an example driver?
