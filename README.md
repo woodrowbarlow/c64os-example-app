@@ -26,11 +26,11 @@ that's why I've set this up.
 
 Via SSH:
 
-    git clone git@github.com:woodrowbarlow/c64os-example-app.git
+    git clone --recurse-submodules git@github.com:woodrowbarlow/c64os-example-app.git
 
 Via HTTPS:
 
-    git clone https://github.com/woodrowbarlow/c64os-example-app.git
+    git clone --recurse-submodules https://github.com/woodrowbarlow/c64os-example-app.git
 
 As an archive:
 
@@ -72,7 +72,7 @@ optionally provide those binaries as well:
 
 Those binaries are also available for purchase from Retro Innovations:
 
-https://store.go4retro.com/jiffydos-64-kernal-rom-overlay-image/
+https://store.go4retro.com/jiffydos-64-kernal-rom-overlay-image/  
 https://store.go4retro.com/jiffydos-1541-dos-rom-overlay-image/
 
 ## Build
@@ -99,7 +99,7 @@ C64 OS from drive #9:
 
     make run
 
-The floppy contains the `main.o` and `main.m` objects. You'll need to install
+The floppy contains the `main.o` and `menu.m` objects. You'll need to install
 these as an application. See the programmers guide for more info:
 
 https://c64os.com/c64os/programmersguide/devenvironment

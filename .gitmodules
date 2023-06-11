@@ -1,0 +1,3 @@
+[submodule "inc"]
+	path = inc
+	url = ../../OpCoders-Inc/c64os-dev.git

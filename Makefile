@@ -5,11 +5,12 @@ APP_FULLNAME = $(APP_NAME)_$(APP_VERSION)
 BINDIR := ./bin
 ROMDIR := ./rom
 SRCDIR := ./src
+INCDIR := ./inc
 OUTDIR := ./out
 DISTDIR := ./dist
 
 ASM := $(BINDIR)/tmpx
-ASMFLAGS := 
+ASMFLAGS := -I $(INCDIR)
 
 TMPX_VERSION = TMPx_v1.1.0-STYLE
 TMPX_ARCH = linux-x86_64
@@ -59,7 +60,7 @@ $(ASM):
 $(OUTDIR)/%.m: $(SRCDIR)/%.m
 	cp $< $@
 
-$(OUTDIR)/%.o: $(SRCDIR)/%.S
+$(OUTDIR)/%.o: $(SRCDIR)/%.s
 	$(ASM) $(ASMFLAGS) -i $< -o $@
 
 $(OUTDIR)/c64os.dhd: $(C64OS_DHD)
