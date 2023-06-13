@@ -1,13 +1,160 @@
-    .include "os/h/modules.h"
+;----[ main.s - example app ]-----------
 
-    #inc_s "app"
+         .include "os/h/modules.h"
 
-    *= appbase
+         ;Useful Constants/Macros
 
-    .word start
+         #inc_s "app"
+         #inc_s "colors"
+         #inc_s "ctxdraw"
+         #inc_s "io"
+         #inc_s "pointer"
+         #inc_s "switch"
 
-start
+         ;Kernal Module Constants
 
-loop
-    inc $d020
-    jmp loop
+         #inc_s "screen"
+         #inc_s "service"
+
+;---------------------------------------
+;Data Structures
+
+         *= appbase
+
+         .word init     ;App Initializer
+         .word msgcmd   ;Message Handler
+         .word willquit ;App Clean Up
+         .word raw_rts  ;REU Freeze
+         .word raw_rts  ;REU Thaw
+
+layer    .word drawmain
+         .word sec_rts ;MouseEvt Handler
+         .word sec_rts ;Kcmd Evt Handler
+         .word sec_rts ;KprntEvt handler
+         .byte 0       ;Layer Index
+
+drawctx  .word scrbuf      ;Char Origin
+         .word colbuf      ;Colr Origin
+         .byte screen_cols ;Buff Width
+         .byte screen_cols ;Draw Width
+         .byte screen_rows ;Draw Height
+         .word 0           ;Offset Top
+         .word 0           ;Offset Left
+
+hello_s  .null "Welcome to C64 OS!"
+
+;---------------------------------------
+
+init
+         .block
+         #ldxy externs
+         jsr initextern
+
+         #ldxy layer
+         jsr layerpush
+
+         ;Load Shared Libraries
+
+         ;Load Custom TK Classes
+
+         ;Load Custom Icons
+
+         ;Initialize UI
+
+         rts
+         .bend
+
+willquit
+         .block
+         ;Deallocate resources here.
+
+         ;Unload Shared Libraries
+
+         ;Unload Custom Icons
+
+         rts
+         .bend
+
+msgcmd   ;A -> Msg Command
+         .block
+
+         ;"Menu Enquiry" and "Menu Cmd"
+         ;message types must be handled
+         ;to support menu actions.
+
+         #switch 2
+         .byte mc_menq,mc_mnu
+         .rta mnuenq,mnucmd
+
+done     sec            ;Msg Not Handled
+         rts
+
+mnuenq   ;X -> Menu Action Code
+         lda #0 ;Enabled, Not Selected
+         rts
+
+mnucmd   ;X -> Menu Action Code
+         txa
+         #switch 1
+         .text "!"
+         .rta quitapp
+
+         sec ;Action Code Not Recognized
+         rts
+         .bend
+
+drawmain
+         .block
+         ;Configure the Draw Context
+         #ldxy drawctx
+         jsr setctx
+
+         ;Set Draw Properties and Color
+         ldx #d_crsr_h.d_petscr
+         ldy #clblue
+         jsr setdprops
+
+         ;Clear the Draw Context
+         lda #" "
+         jsr ctxclear
+
+         ;Set Context Draw Position
+
+         #ldxy 5   ;Row  5
+         clc
+         jsr setlrc
+
+         #ldxy 11  ;Col 11     (40-18)/2
+         sec
+         jsr setlrc
+
+         ;Loop over message, outputting
+         ;with calls to ctxdraw.
+
+         ldx #0
+next     lda hello_s,x
+         beq done
+         jsr ctxdraw
+         inx
+         bne next
+
+done     rts
+         .bend
+
+;---------------------------------------
+externs  ;C64 OS KERNAL Link Table
+
+         #inc_h "screen"
+layerpush #syscall lscr,layerpush_
+setlrc   #syscall lscr,setlrc_
+setdprops #syscall lscr,setdprops_
+ctxclear #syscall lscr,ctxclear_
+ctxdraw  #syscall lscr,ctxdraw_
+
+         #inc_h "service"
+quitapp  #syscall lser,quitapp_
+
+         #inc_h "toolkit"
+setctx   #syscall ltkt,setctx_
+
+         .byte $ff ;terminator
