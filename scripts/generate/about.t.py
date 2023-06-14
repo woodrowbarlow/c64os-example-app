@@ -15,8 +15,7 @@ def main(name, version, author):
         author.encode(lc_codec)
     ]
     for line in lines:
-        sys.stdout.buffer.write(line)
-        sys.stdout.buffer.write(b'\x0d')
+        sys.stdout.buffer.write(line + b'\x0d')
 
 
 if __name__ == "__main__":

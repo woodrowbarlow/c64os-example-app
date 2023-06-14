@@ -64,11 +64,11 @@ $(ASM):
 	chmod +x $(ASM)
 
 $(OUTDIR)/about.t:
-	$(PYTHON) -m poetry run ./scripts/generate/about.t.py "$(APP_NAME)" "$(APP_VERSION)" "$(APP_AUTHOR)" > $(OUTDIR)/about.t
+	$(PYTHON) -m poetry run ./scripts/generate/about.t.py "$(APP_NAME)" "$(APP_VERSION)" "$(APP_AUTHOR)" > $@
 
 
-$(OUTDIR)/%.m: $(SRCDIR)/%.m
-	cp $< $@
+$(OUTDIR)/menu.m: $(SRCDIR)/menu.json
+	$(PYTHON) -m poetry run ./scripts/generate/menu.m.py $< > $@
 
 $(OUTDIR)/%.o: $(SRCDIR)/%.s
 	$(ASM) $(ASMFLAGS) -i $< -o $@
