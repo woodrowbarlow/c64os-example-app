@@ -38,17 +38,54 @@ As an archive:
 
 ## Dependencies
 
-The cross-assembler is TMPx. The Makefile will automatically download it
-automatically.
+**Python**
+
+Python is used to translate between some file formats and encodings.
+
+You need Python 3.10 or newer.
+
+https://www.python.org/
+
+You'll also need to install a Python package called Poetry:
+
+    python -m pip install poetry
+
+Finally, use Poetry to install the rest of the Python dependencies:
+
+    python -m poetry install
+
+Those dependencies get installed in a virtual environment, to avoid polluting
+your system environment. The Makefile takes care of activating that environment
+when necessary.
+
+**Make**
+
+You'll need to be able to execute `Makefile`s. I use GNU Make but any
+POSIX-compliant `Makefile` runner should do.
+
+We also depend on a few standard UNIX tools.
+
+**Cross-Assembler**
+
+The cross-assembler is TMPx. This translates the source into 6502 binaries.
 
 https://style64.org/release/tmpx-v1.1.0-style
+
+You do not need to download this. The Makefile will automatically download it
+on first run.
+
+**Emulator**
+
+The emulator is used for testing and for generating a `.d64` disk image
+containing the final application. The emulator is not strictly necessary if
+you are running the application on real hardware (and have a way to transfer
+the file).
 
 VICE - the Versatile Commodore Emulator (at least v3.5)
 
 https://vice-emu.sourceforge.io/
 
-VICE is used to generate the final .d64 image, and for running the app in
-emulation. It is not needed for cross-assembling.
+**ROMs and Disk Images**
 
 If you wish you run the app in emulation, there are a couple of extra files
 that you must provide:
@@ -81,13 +118,13 @@ To simply cross-assemble:
 
     make all
 
-The assembled artifacts are available in the `dist/example_app_0.1` folder.
+The assembled artifacts are available in the `dist/example-app_0.1` folder.
 
 To generate a disk image:
 
     make d64
 
-The final artifact is `dist/example_app_0.1.d64`.
+The final artifact is `dist/example-app_0.1.d64`.
 
 ## Run
 
@@ -98,6 +135,9 @@ If using emulation, the Makefile can mount the `.d64` on drive #8 and boot
 C64 OS from drive #9:
 
     make run
+
+> Tip: Press Alt+M to let VICE "capture" your mouse and the same keystroke to
+> release it back to the host OS.
 
 The floppy contains the `main.o` and `menu.m` objects. You'll need to install
 these as an application. See the programmers guide for more info:
@@ -112,7 +152,8 @@ https://c64os.com/c64os/programmersguide/devenvironment
 * [ ] research toolkit, add basic window controls.
 * [ ] research menus, tooling for building `.m` files.
 * [ ] generate `.car` files. burn these to disk instead of objects.
-* [ ] generate `.d71`, `.d81`, and `.t64` images.
+* [ ] generate `menu.m` files from something like `.toml`?
+* [ ] generate `.d71`, `.d81`, and `.t64` images?
 * [ ] research libraries, add an example.
 * [ ] research applications vs utilities, showcase both.
 * [ ] set up CookieCutter template so people can quick-init projects.

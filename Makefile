@@ -1,6 +1,7 @@
-APP_NAME = example_app
-APP_VERSION = 0.1
-APP_FULLNAME = $(APP_NAME)_$(APP_VERSION)
+APP_NAME := example-app
+APP_VERSION := 0.1
+APP_FULLNAME := $(APP_NAME)_$(APP_VERSION)
+APP_AUTHOR := $(USER)
 
 BINDIR := ./bin
 ROMDIR := ./rom
@@ -8,6 +9,10 @@ SRCDIR := ./src
 INCDIR := ./inc
 OUTDIR := ./out
 DISTDIR := ./dist
+
+OBJ := $(OUTDIR)/main.o $(OUTDIR)/menu.m $(OUTDIR)/about.t
+
+PYTHON := python
 
 ASM := $(BINDIR)/tmpx
 ASMFLAGS := -I $(INCDIR)
@@ -28,17 +33,19 @@ C64EMU_ROMFLAGS := -kernal $(JD_KERNAL_ROM) -dos1541II $(JD_1541_ROM) -dosCMDHD 
 C64EMU_MOUNTFLAGS := -drive8type 1542 -drive9type 4844 -8 $(DISTDIR)/$(APP_FULLNAME).d64 -9 $(OUTDIR)/c64os.dhd
 C64EMU_BOOTCMD := load \"c64os\",9\nrun\n
 
-.PHONY: clean all d64 run help
+.PHONY: clean all package d64 run help
 
-all: $(ASM) $(OUTDIR) $(OUTDIR)/main.o $(OUTDIR)/menu.m $(DISTDIR)
-	mkdir -p $(DISTDIR)/$(APP_FULLNAME)/
-	cp $(OUTDIR)/main.o $(DISTDIR)/$(APP_FULLNAME)/main.o
-	cp $(OUTDIR)/menu.m $(DISTDIR)/$(APP_FULLNAME)/menu.m
+package: all $(DISTDIR) $(DISTDIR)/$(APP_FULLNAME)/
+	cp -t $(DISTDIR)/$(APP_FULLNAME)/ $(OBJ)
 
-d64: all
+all: $(ASM) $(OUTDIR) $(OBJ)
+
+d64: package
 	$(C1541EMU) -format $(APP_NAME),8 d64 $(DISTDIR)/$(APP_FULLNAME).d64 \
 	  -attach $(DISTDIR)/$(APP_FULLNAME).d64 \
-	  -write $(DISTDIR)/$(APP_FULLNAME)/main.o main.o -write $(DISTDIR)/$(APP_FULLNAME)/menu.m menu.m
+	  -write $(DISTDIR)/$(APP_FULLNAME)/about.t about.t \
+	  -write $(DISTDIR)/$(APP_FULLNAME)/main.o main.o \
+	  -write $(DISTDIR)/$(APP_FULLNAME)/menu.m menu.m
 
 $(C64OS_DHD):
 	@echo "You must provide a C64 OS disk image. See README.md for more info."
@@ -56,6 +63,9 @@ $(ASM):
 	rm -rf /tmp/$(TMPX_VERSION)
 	chmod +x $(ASM)
 
+$(OUTDIR)/about.t:
+	$(PYTHON) -m poetry run ./scripts/generate/about.t.py "$(APP_NAME)" "$(APP_VERSION)" "$(APP_AUTHOR)" > $(OUTDIR)/about.t
+
 
 $(OUTDIR)/%.m: $(SRCDIR)/%.m
 	cp $< $@
@@ -67,10 +77,13 @@ $(OUTDIR)/c64os.dhd: $(C64OS_DHD)
 	cp $(C64OS_DHD) $(OUTDIR)/c64os.dhd
 
 $(OUTDIR):
-	mkdir -p $(OUTDIR)
+	mkdir -p $@
 
 $(DISTDIR):
-	mkdir -p $(DISTDIR)
+	mkdir -p $@
+
+$(DISTDIR)/$(APP_FULLNAME)/:
+	mkdir -p $@
 
 clean:
 	rm -rf $(OUTDIR) $(DISTDIR)
@@ -82,7 +95,8 @@ run: d64 $(OUTDIR)/c64os.dhd $(CMDHD_ROM)
 
 help:
 	@echo "all: build all object files"
-	@echo "d64: package up a disk image (requires VICE)"
-	@echo "clean: delete all build artifacts"
+	@echo "package: build re-distributable artifacts"
+	@echo "d64: create a disk image artifact (requires VICE)"
+	@echo "clean: delete all objects and artifacts"
 	@echo "run: run the application in emulation (requires VICE)"
 	@echo "help: show this help text"
