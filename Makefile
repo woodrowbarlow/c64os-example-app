@@ -4,6 +4,7 @@ APP_FULLNAME := $(APP_NAME)_$(APP_VERSION)
 APP_AUTHOR := $(USER)
 
 BINDIR := ./bin
+VENVDIR := ./.env
 ROMDIR := ./rom
 SRCDIR := ./src
 INCDIR := ./inc
@@ -55,6 +56,10 @@ $(CMDHD_ROM):
 	@echo "You must provide a CMD HD Boot ROM. See README.md for more info."
 	false
 
+$(VENVDIR):
+	$(PYTHON) -m venv $(VENVDIR)
+	$(VENVDIR)/bin/pip install -r ./requirements.txt
+
 $(ASM):
 	rm -rf /tmp/$(TMPX_VERSION)
 	wget https://style64.org/file/$(TMPX_VERSION).zip -P /tmp/$(TMPX_VERSION)
@@ -63,12 +68,12 @@ $(ASM):
 	rm -rf /tmp/$(TMPX_VERSION)
 	chmod +x $(ASM)
 
-$(OUTDIR)/about.t:
-	$(PYTHON) -m poetry run ./scripts/generate/about.t.py "$(APP_NAME)" "$(APP_VERSION)" "$(APP_AUTHOR)" > $@
+$(OUTDIR)/about.t: $(VENVDIR)
+	$(VENVDIR)/bin/python ./scripts/generate/about.t.py "$(APP_NAME)" "$(APP_VERSION)" "$(APP_AUTHOR)" > $@
 
 
-$(OUTDIR)/menu.m: $(SRCDIR)/menu.json
-	$(PYTHON) -m poetry run ./scripts/generate/menu.m.py $< > $@
+$(OUTDIR)/menu.m: $(SRCDIR)/menu.json $(VENVDIR)
+	$(VENVDIR)/bin/python ./scripts/generate/menu.m.py $< > $@
 
 $(OUTDIR)/%.o: $(SRCDIR)/%.s
 	$(ASM) $(ASMFLAGS) -i $< -o $@
@@ -86,7 +91,7 @@ $(DISTDIR)/$(APP_FULLNAME)/:
 	mkdir -p $@
 
 clean:
-	rm -rf $(OUTDIR) $(DISTDIR)
+	rm -rf $(BINDIR) $(VENVDIR) $(OUTDIR) $(DISTDIR)
 
 run: d64 $(OUTDIR)/c64os.dhd $(CMDHD_ROM)
 	$(C64EMU) -default \

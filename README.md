@@ -38,43 +38,38 @@ As an archive:
 
 ## Dependencies
 
-**Python**
-
-Python is used to translate between some file formats and encodings.
-
-You need Python 3.10 or newer.
-
-https://www.python.org/
-
-You'll also need to install a Python package called Poetry:
-
-    python -m pip install poetry
-
-Finally, use Poetry to install the rest of the Python dependencies:
-
-    python -m poetry install
-
-Those dependencies get installed in a virtual environment, to avoid polluting
-your system environment. The Makefile takes care of activating that environment
-when necessary.
-
-**Make**
+**Unix Tools**
 
 You'll need to be able to execute `Makefile`s. I use GNU Make but any
 POSIX-compliant `Makefile` runner should do.
 
-We also depend on a few standard UNIX tools.
+We also depend on a few standard UNIX tools: `cp`, `rm`, `mkdir`,
+`false`, `install`, `chmod`, `unzip`, and `wget`.
+
+**Python Tools**
+
+Python is used to translate between some file formats and encodings. I suggest
+version 3.8 or newer (I use 3.10).
+
+https://www.python.org/
+
+You'll also need Python's `venv` module, which usually ships with a standard
+installation. All the other Python dependencies get installed in a virtual
+environment behind the scenes by the `Makefile` (you do not need to install
+them on your system).
 
 **Cross-Assembler**
 
-The cross-assembler is TMPx. This translates the source into 6502 binaries.
+The cross-assembler is TMPx - Turbo Macro Pro (Cross).
 
 https://style64.org/release/tmpx-v1.1.0-style
 
 You do not need to download this. The Makefile will automatically download it
 on first run.
 
-**Emulator**
+Greg uses TMP, which means all the OS includes use TMP syntax.
+
+**Emulator (VICE)**
 
 The emulator is used for testing and for generating a `.d64` disk image
 containing the final application. The emulator is not strictly necessary if
@@ -150,9 +145,10 @@ https://c64os.com/c64os/programmersguide/devenvironment
 * [x] integrate VICE for testing.
 * [x] incorporate C64 OS includes.
 * [ ] research toolkit, add basic window controls.
-* [ ] research menus, tooling for building `.m` files.
+* [x] research menus, tooling for building `.m` files.
 * [ ] generate `.car` files. burn these to disk instead of objects.
-* [ ] generate `menu.m` files from something like `.toml`?
+* [x] generate `menu.m` files from `.json`
+* [x] generate `about.t` files from metadata
 * [ ] generate `.d71`, `.d81`, and `.t64` images?
 * [ ] research libraries, add an example.
 * [ ] research applications vs utilities, showcase both.

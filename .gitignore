@@ -1,4 +1,5 @@
 bin
+.env
 rom
 out
 dist
