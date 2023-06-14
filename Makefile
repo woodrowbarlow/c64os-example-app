@@ -34,14 +34,16 @@ C64EMU_ROMFLAGS := -kernal $(JD_KERNAL_ROM) -dos1541II $(JD_1541_ROM) -dosCMDHD 
 C64EMU_MOUNTFLAGS := -drive8type 1542 -drive9type 4844 -8 $(DISTDIR)/$(APP_FULLNAME).d64 -9 $(OUTDIR)/c64os.dhd
 C64EMU_BOOTCMD := load \"c64os\",9\nrun\n
 
-.PHONY: clean all package d64 run help
+.PHONY: download all dist d64 clean clean-dl run help
 
-package: all $(DISTDIR) $(DISTDIR)/$(APP_FULLNAME)/
+dist: all $(DISTDIR)/$(APP_FULLNAME)/
 	cp -t $(DISTDIR)/$(APP_FULLNAME)/ $(OBJ)
 
-all: $(ASM) $(OUTDIR) $(OBJ)
+download: $(ASM) $(VENVDIR)
 
-d64: package
+all: download $(OUTDIR) $(OBJ)
+
+d64: dist
 	$(C1541EMU) -format $(APP_NAME),8 d64 $(DISTDIR)/$(APP_FULLNAME).d64 \
 	  -attach $(DISTDIR)/$(APP_FULLNAME).d64 \
 	  -write $(DISTDIR)/$(APP_FULLNAME)/about.t about.t \
@@ -75,7 +77,7 @@ $(OUTDIR)/about.t: $(VENVDIR)
 $(OUTDIR)/menu.m: $(SRCDIR)/menu.json $(VENVDIR)
 	$(VENVDIR)/bin/python ./scripts/generate/menu.m.py $< > $@
 
-$(OUTDIR)/%.o: $(SRCDIR)/%.s
+$(OUTDIR)/%.o: $(SRCDIR)/%.s $(ASM)
 	$(ASM) $(ASMFLAGS) -i $< -o $@
 
 $(OUTDIR)/c64os.dhd: $(C64OS_DHD)
@@ -84,14 +86,14 @@ $(OUTDIR)/c64os.dhd: $(C64OS_DHD)
 $(OUTDIR):
 	mkdir -p $@
 
-$(DISTDIR):
-	mkdir -p $@
-
 $(DISTDIR)/$(APP_FULLNAME)/:
 	mkdir -p $@
 
 clean:
-	rm -rf $(BINDIR) $(VENVDIR) $(OUTDIR) $(DISTDIR)
+	rm -rf $(OUTDIR) $(DISTDIR)
+
+clean-dl: clean
+	rm -rf $(BINDIR) $(VENVDIR)
 
 run: d64 $(OUTDIR)/c64os.dhd $(CMDHD_ROM)
 	$(C64EMU) -default \
@@ -99,9 +101,13 @@ run: d64 $(OUTDIR)/c64os.dhd $(CMDHD_ROM)
 	  $(C64EMU_MOUNTFLAGS) -keybuf "$(C64EMU_BOOTCMD)"
 
 help:
-	@echo "all: build all object files"
-	@echo "package: build re-distributable artifacts"
-	@echo "d64: create a disk image artifact (requires VICE)"
-	@echo "clean: delete all objects and artifacts"
-	@echo "run: run the application in emulation (requires VICE)"
-	@echo "help: show this help text"
+	@echo "supported targets:"
+	@echo "  download: download all dependencies (for offline build)"
+	@echo "  all: build all object files"
+	@echo "  dist: build re-distributable artifacts (excl. disk images)"
+	@echo "  d64: create a .d64 disk image artifact (requires VICE)"
+	@echo "  clean: delete all objects and artifacts"
+	@echo "  clean-dl: as above, plus delete all downloaded dependencies (not ROMs)"
+	@echo "  run: run the application in emulation (requires VICE)"
+	@echo "  help: show this help text"
+	@echo "the default target is 'dist'."
