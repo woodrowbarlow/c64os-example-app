@@ -1,6 +1,6 @@
 # C64 OS Example App
 
-This is (work in progress) project template set up to cross-assemble for the
+This is a (work in progress) project template set up to cross-assemble for the
 C64 from Linux, specifically for making C64 OS applications.
 
 C64 OS is a graphical general-purpose operating system for the Commodore 64,
@@ -155,33 +155,3 @@ https://c64os.com/c64os/programmersguide/devenvironment
 * [ ] set up CookieCutter template so people can quick-init projects.
 * [ ] `cmake` example with multi-binary/multi-library projects?
 * [ ] research drivers, write an example driver?
-
-## Application Files
-
-**Source File**: `main.s`
-**Object File**: `main.o`
-
-This is the main application source. It is based on a "Hello World" application
-written by Greg. It shows how to link to the Kernal, how to use a drawing
-context, and how to respond to menu messages.
-
-**`menu.json`/`menu.m`**
-
-**Source File**: `menu.json`
-**Object File**: `menu.m`
-
-This is a JSON representation of an application menu. Leaf nodes are menu
-entries, and contain a 3-character sequence:
-
-* Modifier Key Bitmask
-* Action Key
-* Message Byte
-
-This file gets translated to its final format, `menu.m`, during the build.
-
-**Source File**: (none)
-**Object File**: `about.t`
-
-This file gets generated during the build from metadata. It contains the
-application name, version, author, and build year. It is used in the
-"About the App" dialog.

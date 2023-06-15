@@ -3,3 +3,6 @@ bin
 rom
 out
 dist
+__pycache__/
+*.py[cod]
+*$py.class
