@@ -1,6 +1,7 @@
 import cbmcodecs2
 import datetime
 import enum
+import os
 
 
 CAR_MAGIC = 'C64Archive'
@@ -22,6 +23,90 @@ class CarCompressionType(enum.Enum):
     LZ = 2
 
 
+class CarRecordType(enum.Enum):
+
+    FILE = 'F'
+    DIRECTORY = 'D'
+
+
+class CarRecord:
+
+    def __init__(self, record_type, compression_type, name, buffer):
+        self.record_type = record_type
+        self.compression_type = compression_type
+        self.name = name
+        self.buffer = buffer
+
+
+    @property
+    def record_type(self):
+        return self._record_type
+
+
+    @record_type.setter
+    def record_type(self, value):
+        self._record_type = value
+
+
+    @property
+    def compression_type(self):
+        return self._compression_type
+
+
+    @compression_type.setter
+    def compression_type(self, value):
+        self._compression_type = value
+
+
+    @property
+    def name(self):
+        return self._name
+
+
+    @name.setter
+    def name(self, value):
+        self._name = value
+
+
+    @property
+    def buffer(self):
+        return self._buffer
+
+
+    @buffer.setter
+    def buffer(self, value):
+        self._buffer = value
+
+
+    def serialize(self, buffer):
+        raise NotImplementedError()
+
+
+    @staticmethod
+    def deserialize(buffer):
+        raise NotImplementedError()
+
+
+class CarFileRecord(CarRecord):
+
+    def __init__(self, compression_type, name, buffer):
+        super().__init__(
+            CarRecordType.FILE,
+            compression_type,
+            name, buffer
+        )
+
+
+class CarDirectoryRecord(CarRecord):
+
+    def __init__(self, name):
+        super().__init__(
+            CarRecordType.DIRECTORY,
+            CarCompressionType.NONE,
+            name, None
+        )
+
+
 class CarTimestamp:
 
     def __init__(self, year=1900, month=0, day=0, hour=0, minute=0):
@@ -36,7 +121,7 @@ class CarTimestamp:
     def from_datetime(timestamp):
         return CarTimestamp(
             year=timestamp.year, month=timestamp.month, day=timestamp.day,
-            hour=timestamp.hour, minute=timestamp.minute
+            hour=timestamp.hour, minute=timestamp.minute,
         )
 
 
@@ -44,7 +129,7 @@ class CarTimestamp:
     def datetime(self):
         return datetime.datetime(
             year=self.year, month=self.month, day=self.day,
-            hour=self.hour, minute=self.minute
+            hour=self.hour, minute=self.minute,
         )
 
 
@@ -170,3 +255,105 @@ class CarHeader:
         assert magic == CAR_MAGIC
         assert version == CAR_VERSION
         return CarHeader(archive_type=archive_type, timestamp=timestamp, note=note)
+
+
+class CarRecords:
+
+    def __init__(
+        self, manifest={}
+    ):
+        raise NotImplementedError()
+
+
+    def serialize(self, buffer):
+        raise NotImplementedError()
+
+
+    @staticmethod
+    def deserialize(buffer):
+        raise NotImplementedError()
+
+
+class CarArchive:
+
+    def __init__(
+        self, manifest={},
+        archive_type=CarArchiveType.GENERAL,
+        timestamp=datetime.datetime.utcnow(),
+        note='',
+    ):
+        self._header = CarHeader(
+            archive_type=archive_type,
+            timestamp=timestamp,
+            note=note,
+        )
+        self._records = CarRecords(manifest, compression_type)
+
+
+    @property
+    def header(self):
+        return self._header
+
+
+    @property
+    def records(self):
+        return self._records
+
+
+    def serialize(self, buffer):
+        raise NotImplementedError()
+
+
+    @staticmethod
+    def deserialize(buffer):
+        raise NotImplementedError()
+
+
+def _add_path_to_manifest(manifest, full_path, partial_path):
+    parts = partial_path.split(os.sep)
+    head = parts[0]
+    if len(parts) < 2:
+        manifest[head] = full_path
+    else:
+        tail_path = os.sep.join(parts[1:])
+        if head not in manifest:
+            manifest[head] = {}
+        _add_path_to_manifest(manifest[head], full_path, tail_path)
+
+
+def _add_paths_to_manifest(manifest, base, paths):
+    for path in paths:
+        if os.path.isdir(path):
+            nested_paths = glob.glob(os.path.join(path, '*'))
+            _add_paths_to_manifest(manifest, nested_paths)
+        else:
+            _add_path_to_manifest(manifest, os.path.join(base, path), path)
+
+
+def build_manifest(*paths, relative_to=None, prefix='', compression_type=CarCompressionType.NONE):
+    if relative_to is None:
+        relative_to = os.getcwd()
+    manifest = {
+        'contents': {},
+        'attributes': {},
+    }
+    prefix = os.path.normpath(prefix)
+    assert not prefix.startswith('/')
+    contents = manifest['contents']
+    for prefix_part in prefix.split(os.sep):
+        contents[prefix_part] = {}
+        contents = contents[prefix_part]
+    sanitized_paths = []
+    for path in paths:
+        path = os.path.relpath(path, start=relative_to)
+        path = os.path.normpath(path)
+        assert not path.startswith('..')
+        assert os.path.exists(path)
+        sanitized_paths.append(path)
+    _add_paths_to_manifest(contents, relative_to, sanitized_paths)
+    for path in sanitized_paths:
+        full_path = os.path.join(relative_to, path)
+        manifest['attributes'][full_path] = {
+            'compression': compression_type.name.lower(),
+        }
+    return manifest
