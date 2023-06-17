@@ -92,6 +92,9 @@ The first one is included on your C64 OS SD card. For more info:
 
 https://c64os.com/c64os/usersguide/installation#installation_vice
 
+> Tip: You might have the 1.0 DHD. The headers are for 1.03. It is recommended
+> that you undergo an update procedure on your disk image.
+
 The second one can be purchased from Retro Innovations here:
 
 https://store.go4retro.com/commodore/cmd-hdd-boot-rom-2-80-binary-image/
@@ -120,6 +123,10 @@ To generate a disk image:
     make d64
 
 The final artifact is `dist/example-app_0.1.d64`.
+
+To view all available build targets:
+
+    make help
 
 ## Run
 
