@@ -1,6 +1,7 @@
 bin
 .env
 rom
+dl
 out
 dist
 __pycache__/

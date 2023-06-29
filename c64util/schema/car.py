@@ -33,7 +33,7 @@ class CarCompressionType(enum.Enum):
 class CarRecordType(enum.Enum):
 
     PRGFILE = 0x50
-    SEQFILE = 0xAC
+    SEQFILE = 0x53
     DIRECTORY = 0x44
 
 
@@ -55,36 +55,64 @@ class CarRecord(abc.ABC):
     @property
     @abc.abstractmethod
     def size(self):
+        """
+        get the size of this record.
+        :return: record size
+        """
         raise NotImplementedError()
 
 
     @property
     def record_type(self):
+        """
+        get the type of this record.
+        :return: record type
+        """
         return self._record_type
 
 
     @record_type.setter
     def record_type(self, value):
+        """
+        set the type of this recrod.
+        :param value: the new record type
+        """
         self._record_type = value
 
 
     @property
     def compression_type(self):
+        """
+        get the compression type of this record.
+        :return: compression type
+        """
         return self._compression_type
 
 
     @compression_type.setter
     def compression_type(self, value):
+        """
+        set the compression type of this recrod.
+        :param value: the new compression type
+        """
         self._compression_type = value
 
 
     @property
     def name(self):
+        """
+        get the name of this record.
+        :return: record name
+        """
         return self._name
 
 
     @name.setter
     def name(self, value):
+        """
+        set the name of this record.
+        :param value: the new record name
+        """
         assert len(name) <= CarRecord.MAX_NAME_SIZE
         self._name = value
 
@@ -111,11 +139,22 @@ class CarRecord(abc.ABC):
 
     @abc.abstractmethod
     def serialize(self, buffer):
+        """
+        convert this record to cbm-encoded binary and write it to a buffer.
+        the record's contents will be loaded from the filesystem.
+        :param buffer: the output buffer
+        """
         raise NotImplementedError()
 
 
     @staticmethod
     def deserialize(buffer, base_dir=None):
+        """
+        read in cbm-encoded binary from a buffer and parse it into a record.
+        the record's contents will be extracted to the filesystem.
+        :param buffer: the output buffer
+        :param base_dir: the location in which to extract contents.
+        """
         if base_dir is None:
             base_dir = os.getcwd()
         record_type_bytes = buffer.read(1)
@@ -128,7 +167,6 @@ class CarRecord(abc.ABC):
         buffer.read(1) # ???
         compression_bytes = buffer.read(1)
         compression_val = int.from_bytes(compression_bytes, 'little')
-        print(f'"{base_dir}/{name}" ({size} {record_type_val} {compression_val})')
         record_type = CarRecordType(record_type_val)
         compression_type = CarCompressionType(compression_val)
         return record_type.to_class()._deserialize(
@@ -141,6 +179,9 @@ class CarFileRecord(CarRecord):
 
     @property
     def size(self):
+        """
+        get the size of this file, in bytes
+        """
         return os.path.getsize(self.path)
 
 
@@ -315,14 +356,8 @@ class CarDirectoryRecord(CarRecord):
 
 class CarManifest:
 
-    def __init__(self, root=None):
-        self._root = root
-
-
-    def __init__(self, *paths, prefix='/', compression_type=CarCompressionType.NONE):
+    def __init__(self):
         self._root = None
-        for path in paths:
-            self.add_file(path, prefix=prefix, compression_type=compression_type)
 
 
     @property
@@ -335,13 +370,26 @@ class CarManifest:
         self._root = value
 
 
-    def add_file(self, path, prefix='/', compression_type=CarCompressionType.NONE):
+    def add_file(
+        self, path, prefix='/',
+        record_type=CarRecordType.PRGFILE,
+        compression_type=CarCompressionType.NONE
+    ):
         path = os.path.normpath(path)
         prefix_parts = [ part for part in prefix.split('/') if part ]
         path_parts = [ part for part in path.split(os.sep) if part ]
-        name = '/'.join(prefix_parts, path_parts)
-        record = _build_record(name, path, compression_type=compression_type)
-        self.root = self.merge_record(record)
+        name = '/'.join(prefix_parts + path_parts)
+        record = _build_record(
+            name, path,
+            record_type=record_type,
+            compression_type=compression_type
+        )
+        try:
+            self.merge_record(record)
+        except ValueError as e:
+            print(path)
+            print(self.to_dict())
+            raise e
 
 
     def get_record(self, name):
@@ -380,16 +428,12 @@ class CarManifest:
 
 
     def iterate_files(self, filter_fn=None):
-
-        def file_filter_fn(n):
+        for record in self.iterate_records():
             if n.record_type != CarRecordType.DIRECTORY:
-                return False
-            if filter_fn and not filter_fn(n):
-                return False
-            return True
-
-        if self.root is not None:
-            yield from self._iterate_records(self.root, filter_fn=file_filter_fn)
+                continue
+            if filter_fn is not None and not filter_fn(record):
+                continue
+            yield record
 
 
     def _iterate_records(self, node, filter_fn):
@@ -420,9 +464,44 @@ class CarManifest:
             manifest['contents'] = self.root.to_dict()
         for file in self.iterate_files():
             manifest['attributes'][file.path] = {
+                'type': file.record_type.name.lower(),
                 'compression': file.compression_type.name.lower(),
             }
         return manifest
+
+
+    def from_dict(self, d):
+        contents = d['contents']
+        attributes = d['attributes']
+        records = self._from_dict(contents, attributes)
+        assert len(records) <= 1
+        if records:
+            self.root = records[0]
+        else:
+            self.root = None
+
+
+
+    def _from_dict(self, d, attributes):
+        records = []
+        for k, v in d.items():
+            if isinstance(v, dict):
+                r = CarDirectoryRecord(name=k)
+                children = self._from_dict(v, attributes)
+                r.add_children(children)
+                records.append(r)
+            else:
+                attr = attributes[v]
+                record_type = CarRecordType(attr['type'].upper())
+                compression_type = CarCompressionType(attr['compression'].upper())
+                r = record_type.to_class()(
+                    compression_type=compression_type,
+                    name=k, path=v
+                )
+                records.append(r)
+        return records
+
+
 
 
     def serialize(self, buffer, base_dir=None, follow_symlinks=False):
@@ -431,8 +510,9 @@ class CarManifest:
 
     @staticmethod
     def deserialize(buffer, base_dir=None):
-        root = CarRecord.deserialize(buffer, base_dir=base_dir)
-        return CarManifest(root=root)
+        manifest = CarManifest()
+        manifest.root = CarRecord.deserialize(buffer, base_dir=base_dir)
+        return manifest
 
 
 class CarTimestamp:
@@ -588,9 +668,9 @@ class CarHeader:
 
 class CarArchive:
 
-    def __init__(self, header, manifest):
-        self._header = header
-        self._manifest = manifest
+    def __init__(self):
+        self._header = CarHeader()
+        self._manifest = CarManifest()
 
 
     def __init__(
@@ -607,31 +687,24 @@ class CarArchive:
         self._manifest = CarManifest()
 
 
-    def __init__(
-        self, *paths, prefix=None,
-        compression_type=CarCompressionType.NONE,
-        archive_type=CarArchiveType.GENERAL,
-        timestamp=datetime.datetime.utcnow(),
-        note='',
-    ):
-        self._header = CarHeader(
-            archive_type=archive_type,
-            timestamp=timestamp,
-            note=note,
-        )
-        self._manifest = CarManifest(
-            *paths, prefix=prefix, compression_type=compression_type
-        )
-
-
     @property
     def header(self):
         return self._header
 
 
+    @header.setter
+    def header(self, value):
+        self._header = value
+
+
     @property
     def manifest(self):
         return self._manifest
+
+
+    @manifest.setter
+    def manifest(self, value):
+        self._manifest = value
 
 
     def serialize(self, buffer, base_dir=None, follow_symlinks=False):
@@ -641,17 +714,38 @@ class CarArchive:
 
     @staticmethod
     def deserialize(buffer, base_dir=None):
-        header = CarHeader.deserialize(buffer)
-        manifest = CarManifest.deserialize(buffer, base_dir=base_dir)
-        return CarArchive(header, manifest)
+        archive = CarArchive()
+        archive.header = CarHeader.deserialize(buffer)
+        archive.manifest = CarManifest.deserialize(buffer, base_dir=base_dir)
 
 
-def _build_record(name, path, compression_type=CarCompressionType.NONE):
+def _build_record(
+    name, path,
+    record_type=CarRecordType.PRGFILE,
+    compression_type=CarCompressionType.NONE
+):
     parts = [ part for part in name.split('/') if part ]
     head = parts[0]
     parts = parts[1:]
     name = '/'.join(parts)
+    assert record_type != CarRecordType.DIRECTORY
     if not name:
-        return CarPrgFileRecord(name=head, path=path, compression_type=compression_type)
-    child = _build_record(name, path, compression_type=compression_type)
+        return record_type.to_class()(
+            compression_type=compression_type,
+            name=name, path=path
+        )
+    child = _build_record(
+        name, path,
+        record_type=record_type,
+        compression_type=compression_type
+    )
     return CarDirectoryRecord(name=head, children=[child])
+
+
+def unpack_paths(paths):
+    full_paths = []
+    for path in paths:
+        for root, dirs, files in os.walk(path):
+            for f in files:
+                full_paths.append(os.path.join(root, f))
+    return full_paths

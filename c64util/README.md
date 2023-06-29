@@ -15,9 +15,7 @@ This can be used to load data from a file or save data to a file.
 
 For instance, to generate a `.car` archive from scratch:
 
-    archive = CarArchive()
-    archive.manifest.add_file('out/main.o', 'main.o')
-    archive.manifest.add_file('out/menu.m', 'menu.m')
+    archive = CarArchive('out/main.o', 'out/menu.m')
     with open('out/application.car', 'wb') as f:
         archive.serialize(f)
 
